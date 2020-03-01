@@ -1,0 +1,363 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Transform: AWS::Serverless-2016-10-31
+
+Description: AI Powered Speech Analytics for Amazon Connect
+
+Parameters:
+
+  LambdaLogsRetention:
+    Type: Number
+    Default: 7
+
+  LambdaCodeS3Bucket:
+    Type: String
+
+  LambdaCodeS3Key:
+    Type: String
+    Default: amazon-connect-realtime-transcription.zip
+
+Mappings: 
+
+  TranscribeRegion: 
+    us-east-1:
+      Region: us-east-1
+    us-west-2:
+      Region: us-east-2
+    ap-southeast-1:
+      Region: ap-southeast-2
+    ap-southeast-2:
+      Region: ap-southeast-2
+    ap-northeast-1:
+      Region: us-east-2
+    eu-central-1:
+      Region: eu-west-1
+    eu-west-2:
+      Region: eu-west-1
+
+Resources:
+
+  PermissionInitContactDetails:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref CaptureContactDetails
+      Action: lambda:InvokeFunction
+      Principal: connect.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+
+  PermissionKvsConsumerTrigger:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref TriggerTranscriber
+      Action: lambda:InvokeFunction
+      Principal: connect.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+
+  ConnectData:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: True
+        BlockPublicPolicy: True
+        IgnorePublicAcls: True
+        RestrictPublicBuckets: True
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W35
+            reason: No logging required
+
+  ContactDetails:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: ContactId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: ContactId
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      SSESpecification:
+        SSEEnabled: True
+
+  InboundAudio:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: ContactId
+          AttributeType: S
+        - AttributeName: StartTime
+          AttributeType: 'N'
+      KeySchema:
+        - AttributeName: ContactId
+          KeyType: HASH
+        - AttributeName: StartTime
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      SSESpecification:
+        SSEEnabled: True
+      TimeToLiveSpecification:
+        AttributeName: ExpiresAfter
+        Enabled: True
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
+
+  OutboundAudio:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: ContactId
+          AttributeType: S
+        - AttributeName: StartTime
+          AttributeType: 'N'
+      KeySchema:
+        - AttributeName: ContactId
+          KeyType: HASH
+        - AttributeName: StartTime
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      SSESpecification:
+        SSEEnabled: True
+      TimeToLiveSpecification:
+        AttributeName: ExpiresAfter
+        Enabled: True
+
+  CaptureContactDetailsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${CaptureContactDetails}
+      RetentionInDays: !Ref LambdaLogsRetention
+
+  TriggerTranscriberLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${TriggerTranscriber}
+      RetentionInDays: !Ref LambdaLogsRetention
+
+  TranscriberLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${Transcriber}
+      RetentionInDays: !Ref LambdaLogsRetention
+
+  KeywordCheckLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${KeywordCheck}
+      RetentionInDays: !Ref LambdaLogsRetention
+
+  ProcessContactSummaryLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${ProcessContactSummary}
+      RetentionInDays: !Ref LambdaLogsRetention
+
+  CaptureContactDetails:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: AWS Lambda Function that will be triggered when the call starts so that we have the initial contact details which can later add to when we have the transcript, and audio file location.
+      Handler: lambda_function.lambda_handler
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:UpdateItem
+              Resource:
+                - !GetAtt ContactDetails.Arn
+      Runtime: python3.7
+      MemorySize: 128
+      Timeout: 30
+      Environment:
+        Variables:
+          table_name: !Ref ContactDetails
+      CodeUri: ./functions/capture_contact_details
+
+  TriggerTranscriber:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: AWS Lambda Function to start (asynchronous) streaming transcription; it is expected to be called by the Amazon Connect Contact Flow.
+      Handler: lambda_function.lambda_handler
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - 'lambda:InvokeFunction'
+              Resource:
+                - !GetAtt Transcriber.Arn
+      Runtime: python3.7
+      MemorySize: 128
+      Timeout: 30
+      Environment:
+        Variables:
+          transcribe_function: !Ref Transcriber
+      CodeUri: ./functions/trigger_transcriber
+
+  Transcriber:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Process audio from Kinesis Video Stream and use Amazon Transcribe to get text for the caller audio. Will be invoked by the kvsConsumerTrigger Lambda, writes results to the transcript DynamoDB tables, and uploads the audio file to S3.
+      Handler: com.amazonaws.kvstranscribestreaming.KVSTranscribeStreamingLambda::handleRequest
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - 'dynamodb:Query'
+                - 'dynamodb:Scan'
+                - 'dynamodb:PutItem'
+                - 'dynamodb:UpdateItem'
+                - 'dynamodb:GetRecords'
+                - 'dynamodb:GetShardIterator'
+                - 'dynamodb:DescribeStream'
+                - 'dynamodb:ListStreams'
+              Resource:
+                - !GetAtt InboundAudio.Arn
+                - !GetAtt OutboundAudio.Arn
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:GetObject
+                - s3:PutObjectAcl
+              Resource:
+                - !Sub '${ConnectData.Arn}/*'
+            - Effect: Allow
+              Action:
+                - 'transcribe:DeleteTranscriptionJob'
+                - 'transcribe:GetTranscriptionJob'
+                - 'transcribe:GetVocabulary'
+                - 'transcribe:ListTranscriptionJobs'
+                - 'transcribe:ListVocabularies'
+                - 'transcribe:StartStreamTranscription'
+                - 'transcribe:StartTranscriptionJob'
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - 'kinesisvideo:Describe*'
+                - 'kinesisvideo:Get*'
+                - 'kinesisvideo:List*'
+              Resource: '*'
+      Runtime: java11
+      MemorySize: 512
+      Timeout: 900
+      Environment:
+        Variables:
+          APP_REGION: !Ref AWS::Region
+          TRANSCRIBE_REGION: !FindInMap [TranscribeRegion, !Ref AWS::Region, Region]
+          RECORDINGS_BUCKET_NAME: !Ref ConnectData
+          RECORDINGS_KEY_PREFIX: recordings/
+          INPUT_KEY_PREFIX: audio-file-input/
+          TABLE_CALLER_TRANSCRIPT: !Ref InboundAudio
+          TABLE_CALLER_TRANSCRIPT_TO_CUSTOMER: !Ref OutboundAudio
+          RECORDINGS_PUBLIC_READ_ACL: 'FALSE'
+          CONSOLE_LOG_TRANSCRIPT_FLAG: 'TRUE'
+          LOGGING_LEVEL: 'FINE'
+          SAVE_PARTIAL_TRANSCRIPTS: 'TRUE'
+          START_SELECTOR_TYPE: 'NOW'
+          SEND_ANONYMOUS_DATA: 'Yes'
+#      CodeUri: ../build/distributions/amazon-connect-realtime-transcription.zip
+      CodeUri:
+        Bucket: !Ref LambdaCodeS3Bucket
+        Key: !Ref LambdaCodeS3Key
+
+  KeywordCheck:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: AWS Lambda Function that will be triggered from a DynamoDB stream to watch for key words in the stream.
+      Handler: lambda_function.lambda_handler
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource:
+                - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${SsmParameter}
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource:
+                - !GetAtt ContactDetails.Arn
+            - Effect: Allow
+              Action:
+                - sns:Publish
+              Resource:
+                - !Ref SnsTopic
+      Runtime: python3.7
+      MemorySize: 128
+      Timeout: 120
+      Environment:
+        Variables:
+          trigger_words_parameter: !Ref SsmParameter
+          table_name: !Ref ContactDetails
+          sns_topic_arn: !Ref SnsTopic
+      Events:
+        DBTrigger:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt InboundAudio.StreamArn
+            StartingPosition: LATEST
+      CodeUri: ./functions/keyword_check
+
+  ProcessContactSummary:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: AWS Lambda Function that will be triggered when the wav call recording file is placed in S3. This function will collect all the transcript segments, and the audio file location and update the contact db.
+      Handler: lambda_function.lambda_handler
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource:
+                - !GetAtt InboundAudio.Arn
+                - !GetAtt OutboundAudio.Arn
+            - Effect: Allow
+              Action:
+                - dynamodb:UpdateItem
+              Resource:
+                - !GetAtt ContactDetails.Arn
+      Runtime: python3.7
+      MemorySize: 128
+      Timeout: 120
+      Environment:
+        Variables:
+          contact_table_name: !Ref ContactDetails
+          transcript_seg_table_name: !Ref InboundAudio
+          transcript_seg_to_customer_table_name: !Ref OutboundAudio
+      Events:
+        S3Trigger:
+          Type: S3
+          Properties:
+            Bucket: !Ref ConnectData
+            Events: 's3:ObjectCreated:*'
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: recordings/
+                  - Name: suffix
+                    Value: wav
+      CodeUri: ./functions/process_contact_summary
+
+  SsmParameter:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Description: Parameter to store the list of key words to listen for in the inbound transcript.
+      Type: StringList
+      Value: emergency,spark,surge
+
+  SnsTopic:
+    Type: AWS::SNS::Topic
