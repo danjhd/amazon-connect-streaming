@@ -1,0 +1,414 @@
+{
+  "version": "1",
+  "type": "contactFlow",
+  "start": "856dd865-e5a0-49c6-aacc-55fe53c38a22",
+  "metadata": {
+    "entryPointPosition": {
+      "x": 20,
+      "y": 20
+    },
+    "snapToGrid": false,
+    "name": "Streaming flow",
+    "description": null,
+    "type": "contactFlow",
+    "status": "published",
+    "hash": "88dcc445c0b3a4abd1be2dcb9c4995d9405cd38cc63c0718ab5edc70378e5172"
+  },
+  "modules": [
+    {
+      "id": "856dd865-e5a0-49c6-aacc-55fe53c38a22",
+      "type": "SetLoggingBehavior",
+      "branches": [
+        {
+          "condition": "Success",
+          "transition": "44f8fd10-3508-4359-a998-7ab5cf7fae27"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "LoggingBehavior",
+          "value": "Enable"
+        }
+      ],
+      "metadata": {
+        "position": {
+          "x": 186,
+          "y": 16
+        }
+      }
+    },
+    {
+      "id": "44f8fd10-3508-4359-a998-7ab5cf7fae27",
+      "type": "SetVoice",
+      "branches": [
+        {
+          "condition": "Success",
+          "transition": "07273109-a75a-4742-aaae-ce35603c31fc"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "GlobalVoice",
+          "value": "Amy"
+        }
+      ],
+      "metadata": {
+        "position": {
+          "x": 414,
+          "y": 19
+        }
+      }
+    },
+    {
+      "id": "07273109-a75a-4742-aaae-ce35603c31fc",
+      "type": "PlayPrompt",
+      "branches": [
+        {
+          "condition": "Success",
+          "transition": "6728609a-9707-41f7-a87c-30ac1fde4f4c"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "Text",
+          "value": "This is the sample flow to demonstrate customer audio streaming and recording. The call will remain open indefinitely after the beep to record all customer audio.",
+          "namespace": null
+        },
+        {
+          "name": "TextToSpeechType",
+          "value": "text"
+        }
+      ],
+      "metadata": {
+        "position": {
+          "x": 636,
+          "y": 22
+        },
+        "useDynamic": false
+      }
+    },
+    {
+      "id": "6728609a-9707-41f7-a87c-30ac1fde4f4c",
+      "type": "StartMediaStreaming",
+      "branches": [
+        {
+          "condition": "Success",
+          "transition": "abe8c2b7-f002-41b1-8e9e-374ff32c2351"
+        },
+        {
+          "condition": "Error",
+          "transition": "410057d0-9390-486b-bbb4-c4def2a7367c"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "Track",
+          "value": "FromCustomer"
+        },
+        {
+          "name": "MediaStreamTypes",
+          "value": "Audio"
+        }
+      ],
+      "metadata": {
+        "position": {
+          "x": 55,
+          "y": 249
+        },
+        "fromCustomer": true,
+        "toCustomer": false
+      }
+    },
+    {
+      "id": "abe8c2b7-f002-41b1-8e9e-374ff32c2351",
+      "type": "InvokeExternalResource",
+      "branches": [
+        {
+          "condition": "Success",
+          "transition": "e7825b58-a9db-4935-9f83-e67a564176e8"
+        },
+        {
+          "condition": "Error",
+          "transition": "e7825b58-a9db-4935-9f83-e67a564176e8"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "FunctionArn",
+          "value": "CaptureContactDetails",
+          "namespace": null
+        },
+        {
+          "name": "TimeLimit",
+          "value": "8"
+        }
+      ],
+      "metadata": {
+        "position": {
+          "x": 274,
+          "y": 253
+        },
+        "dynamicMetadata": {},
+        "useDynamic": false
+      },
+      "target": "Lambda"
+    },
+    {
+      "id": "410057d0-9390-486b-bbb4-c4def2a7367c",
+      "type": "PlayPrompt",
+      "branches": [
+        {
+          "condition": "Success",
+          "transition": "04aacf02-1a6a-4df8-9a3b-5cce1d6e25a4"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "Text",
+          "value": "An error occurred when we tried to start streaming.",
+          "namespace": null
+        },
+        {
+          "name": "TextToSpeechType",
+          "value": "text"
+        }
+      ],
+      "metadata": {
+        "position": {
+          "x": 286,
+          "y": 540
+        },
+        "useDynamic": false
+      }
+    },
+    {
+      "id": "e7825b58-a9db-4935-9f83-e67a564176e8",
+      "type": "SetAttributes",
+      "branches": [
+        {
+          "condition": "Success",
+          "transition": "97a964a7-5dd2-4c82-b21f-173b209be8a7"
+        },
+        {
+          "condition": "Error",
+          "transition": "97a964a7-5dd2-4c82-b21f-173b209be8a7"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "Attribute",
+          "value": "true",
+          "key": "transcribeCall",
+          "namespace": null
+        },
+        {
+          "name": "Attribute",
+          "value": "true",
+          "key": "saveCallRecording",
+          "namespace": null
+        },
+        {
+          "name": "Attribute",
+          "value": "en-GB",
+          "key": "languageCode",
+          "namespace": null
+        }
+      ],
+      "metadata": {
+        "position": {
+          "x": 495,
+          "y": 254
+        }
+      }
+    },
+    {
+      "id": "97a964a7-5dd2-4c82-b21f-173b209be8a7",
+      "type": "InvokeExternalResource",
+      "branches": [
+        {
+          "condition": "Success",
+          "transition": "1df64a04-35f6-4535-b7e4-78aabfd3b5a1"
+        },
+        {
+          "condition": "Error",
+          "transition": "aa21389d-0252-465c-80ec-2c9ea9a83b19"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "FunctionArn",
+          "value": "TriggerTranscriber",
+          "namespace": null
+        },
+        {
+          "name": "TimeLimit",
+          "value": "8"
+        }
+      ],
+      "metadata": {
+        "position": {
+          "x": 721,
+          "y": 255
+        },
+        "dynamicMetadata": {},
+        "useDynamic": false
+      },
+      "target": "Lambda"
+    },
+    {
+      "id": "1df64a04-35f6-4535-b7e4-78aabfd3b5a1",
+      "type": "SetEventHook",
+      "branches": [
+        {
+          "condition": "Success",
+          "transition": "3434e4a0-e2c1-4c3a-9f52-81ae81a852e2"
+        },
+        {
+          "condition": "Error",
+          "transition": "3434e4a0-e2c1-4c3a-9f52-81ae81a852e2"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "Type",
+          "value": "CustomerQueue"
+        },
+        {
+          "name": "ContactFlowId",
+          "resourceName": "Silent hold queue"
+        }
+      ],
+      "metadata": {
+        "position": {
+          "x": 943,
+          "y": 254
+        },
+        "contactFlow": {
+          "text": "Silent hold queue"
+        },
+        "customerOrAgent": false,
+        "useDynamic": false
+      }
+    },
+    {
+      "id": "aa21389d-0252-465c-80ec-2c9ea9a83b19",
+      "type": "PlayPrompt",
+      "branches": [
+        {
+          "condition": "Success",
+          "transition": "04aacf02-1a6a-4df8-9a3b-5cce1d6e25a4"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "Text",
+          "value": "An error occurred with the KVS trigger lambda function.",
+          "namespace": null
+        },
+        {
+          "name": "TextToSpeechType",
+          "value": "text"
+        }
+      ],
+      "metadata": {
+        "position": {
+          "x": 944,
+          "y": 461
+        },
+        "useDynamic": false
+      }
+    },
+    {
+      "id": "3434e4a0-e2c1-4c3a-9f52-81ae81a852e2",
+      "type": "SetQueue",
+      "branches": [
+        {
+          "condition": "Success",
+          "transition": "352844b9-6ce6-4a28-a240-adcf95d66c4d"
+        },
+        {
+          "condition": "Error",
+          "transition": "352844b9-6ce6-4a28-a240-adcf95d66c4d"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "Queue",
+          "namespace": null,
+          "resourceName": "BasicQueue"
+        }
+      ],
+      "metadata": {
+        "position": {
+          "x": 1166,
+          "y": 254
+        },
+        "useDynamic": false,
+        "queue": {
+          "text": "BasicQueue"
+        }
+      }
+    },
+    {
+      "id": "352844b9-6ce6-4a28-a240-adcf95d66c4d",
+      "type": "PlayPrompt",
+      "branches": [
+        {
+          "condition": "Success",
+          "transition": "919982d6-3066-49e5-afe5-619896781245"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "AudioPrompt",
+          "namespace": null,
+          "resourceName": "Beep.wav"
+        }
+      ],
+      "metadata": {
+        "position": {
+          "x": 1392,
+          "y": 276
+        },
+        "useDynamic": false,
+        "promptName": "Beep.wav"
+      }
+    },
+    {
+      "id": "919982d6-3066-49e5-afe5-619896781245",
+      "type": "Transfer",
+      "branches": [
+        {
+          "condition": "AtCapacity",
+          "transition": "04aacf02-1a6a-4df8-9a3b-5cce1d6e25a4"
+        },
+        {
+          "condition": "Error",
+          "transition": "04aacf02-1a6a-4df8-9a3b-5cce1d6e25a4"
+        }
+      ],
+      "parameters": [],
+      "metadata": {
+        "position": {
+          "x": 1638,
+          "y": 260
+        },
+        "useDynamic": false,
+        "queue": null
+      },
+      "target": "Queue"
+    },
+    {
+      "id": "04aacf02-1a6a-4df8-9a3b-5cce1d6e25a4",
+      "type": "Disconnect",
+      "branches": [],
+      "parameters": [],
+      "metadata": {
+        "position": {
+          "x": 1886,
+          "y": 501
+        }
+      }
+    }
+  ]
+}

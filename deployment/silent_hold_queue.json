@@ -1,0 +1,51 @@
+{
+  "version": "1",
+  "type": "customerQueue",
+  "start": "098007b7-e257-4b7c-9c3c-741d4680517d",
+  "metadata": {
+    "entryPointPosition": {
+      "x": 243,
+      "y": 172
+    },
+    "snapToGrid": false,
+    "name": "Silent hold queue",
+    "description": "Empty audio to allow call recording",
+    "type": "customerQueue",
+    "status": "published",
+    "hash": "16755bc0ae576bc3fb6a8dfa85a17c7c2028af21155c791f88f85c9250063db7"
+  },
+  "modules": [
+    {
+      "id": "098007b7-e257-4b7c-9c3c-741d4680517d",
+      "type": "LoopPrompts",
+      "branches": [],
+      "parameters": [
+        {
+          "name": "AudioPrompt",
+          "resourceName": "Silent.wav"
+        }
+      ],
+      "metadata": {
+        "position": {
+          "x": 397,
+          "y": 231
+        },
+        "audio": [
+          {
+            "tts": "Thank you for calling. Please speak now to record your voicemail",
+            "useTts": true,
+            "ttsType": "text",
+            "type": "Prompt",
+            "prompt": null,
+            "$$hashKey": "043",
+            "text": "Silent.wav"
+          }
+        ],
+        "timeoutUnit": {
+          "display": "Minutes",
+          "value": "min"
+        }
+      }
+    }
+  ]
+}
