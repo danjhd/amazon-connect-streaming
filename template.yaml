@@ -4,12 +4,6 @@ Transform: AWS::Serverless-2016-10-31
 
 Description: AI Powered Speech Analytics for Amazon Connect
 
-Parameters:
-
-  LambdaLogsRetention:
-    Type: Number
-    Default: 7
-
 Mappings: 
 
   TranscribeRegion: 
@@ -125,36 +119,6 @@ Resources:
         AttributeName: ExpiresAfter
         Enabled: True
 
-  CaptureContactDetailsLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${CaptureContactDetails}
-      RetentionInDays: !Ref LambdaLogsRetention
-
-  TriggerTranscriberLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${TriggerTranscriber}
-      RetentionInDays: !Ref LambdaLogsRetention
-
-  TranscriberLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${Transcriber}
-      RetentionInDays: !Ref LambdaLogsRetention
-
-  KeywordCheckLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${KeywordCheck}
-      RetentionInDays: !Ref LambdaLogsRetention
-
-  ProcessContactSummaryLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${ProcessContactSummary}
-      RetentionInDays: !Ref LambdaLogsRetention
-
   CaptureContactDetails:
     Type: AWS::Serverless::Function
     Properties:
@@ -260,9 +224,6 @@ Resources:
           START_SELECTOR_TYPE: 'NOW'
           SEND_ANONYMOUS_DATA: 'Yes'
       CodeUri: ./functions/transcriber/build/distributions/transcriber.zip
-#      CodeUri:
-#        Bucket: !Ref LambdaCodeS3Bucket
-#        Key: !Ref LambdaCodeS3Key
 
   KeywordCheck:
     Type: AWS::Serverless::Function
@@ -350,7 +311,7 @@ Resources:
     Properties: 
       Description: Parameter to store the list of key words to listen for in the inbound transcript.
       Type: StringList
-      Value: emergency,spark,surge
+      Value: 'emergency,spark,surge'
 
   SnsTopic:
     Type: AWS::SNS::Topic
