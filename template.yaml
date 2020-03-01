@@ -10,13 +10,6 @@ Parameters:
     Type: Number
     Default: 7
 
-  LambdaCodeS3Bucket:
-    Type: String
-
-  LambdaCodeS3Key:
-    Type: String
-    Default: amazon-connect-realtime-transcription.zip
-
 Mappings: 
 
   TranscribeRegion: 
@@ -266,10 +259,10 @@ Resources:
           SAVE_PARTIAL_TRANSCRIPTS: 'TRUE'
           START_SELECTOR_TYPE: 'NOW'
           SEND_ANONYMOUS_DATA: 'Yes'
-#      CodeUri: ../build/distributions/amazon-connect-realtime-transcription.zip
-      CodeUri:
-        Bucket: !Ref LambdaCodeS3Bucket
-        Key: !Ref LambdaCodeS3Key
+      CodeUri: ./functions/transcriber/build/distributions/transcriber.zip
+#      CodeUri:
+#        Bucket: !Ref LambdaCodeS3Bucket
+#        Key: !Ref LambdaCodeS3Key
 
   KeywordCheck:
     Type: AWS::Serverless::Function
