@@ -1,8 +1,8 @@
 .gradle
-/build/
+/build/*
 
 # But not these files...
-!/build/distributions
+!/build/distributions/
 
 # Ignore Gradle GUI config
 gradle-app.setting
