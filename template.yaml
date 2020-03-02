@@ -165,7 +165,7 @@ Resources:
                 - dynamodb:UpdateItem
               Resource:
                 - !GetAtt ContactDetails.Arn
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: 128
       Timeout: 30
       Environment:
@@ -186,7 +186,7 @@ Resources:
                 - 'lambda:InvokeFunction'
               Resource:
                 - !GetAtt Transcriber.Arn
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: 128
       Timeout: 30
       Environment:
@@ -281,7 +281,7 @@ Resources:
                 - sns:Publish
               Resource:
                 - !Ref SnsTopic
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: 128
       Timeout: 120
       Environment:
@@ -316,7 +316,7 @@ Resources:
                 - dynamodb:UpdateItem
               Resource:
                 - !GetAtt ContactDetails.Arn
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: 128
       Timeout: 120
       Environment:
@@ -352,7 +352,7 @@ Resources:
                 - sns:Publish
               Resource:
                 - !Ref SnsTopic
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: 128
       Timeout: 30
       Environment:
@@ -365,6 +365,13 @@ Resources:
             Stream: !GetAtt ContactDetails.StreamArn
             StartingPosition: LATEST
       CodeUri: ./functions/call_complete
+
+  RequestsLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      CompatibleRuntimes: 
+        - python3.8
+      Content: ./layers/requests
 
   ContactFlows:
     Type: AWS::Serverless::Function
@@ -380,7 +387,7 @@ Resources:
                 - s3:DeleteObject
               Resource:
                 - !Sub ${ConnectData.Arn}/*
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: 128
       Timeout: 30
       Environment:
@@ -388,6 +395,8 @@ Resources:
           CaptureContactDetailsArn: !GetAtt CaptureContactDetails.Arn
           TriggerTranscriberArn: !GetAtt TriggerTranscriber.Arn
           s3_bucket: !Ref ConnectData
+      Layers:
+        - !Ref RequestsLayer
       CodeUri: ./functions/contact_flows
 
   CreateContactFlows:
