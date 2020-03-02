@@ -4,6 +4,19 @@ Transform: AWS::Serverless-2016-10-31
 
 Description: AI Powered Speech Analytics for Amazon Connect
 
+Parameters:
+
+  KeyWords:
+    Type: CommaDelimitedList
+    Default: emergency,spark,surge
+
+  EmailAddress:
+    Type: String
+
+Conditions:
+
+  EmailSupplied: !Not [!Equals [!Ref EmailAddress, '']]
+
 Mappings: 
 
   TranscribeRegion: 
@@ -126,10 +139,18 @@ Resources:
     Properties: 
       Description: Parameter to store the list of key words to listen for in the inbound transcript.
       Type: StringList
-      Value: 'emergency,spark,surge'
+      Value: !Join [',', !Ref KeyWords]
 
   SnsTopic:
     Type: AWS::SNS::Topic
+
+  SnsSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: EmailSupplied
+    Properties:
+      Endpoint: !Ref EmailAddress
+      Protocol: email
+      TopicArn: !Ref SnsTopic
 
   CaptureContactDetails:
     Type: AWS::Serverless::Function
@@ -344,3 +365,32 @@ Resources:
             Stream: !GetAtt ContactDetails.StreamArn
             StartingPosition: LATEST
       CodeUri: ./functions/call_complete
+
+  ContactFlows:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: AWS Lambda Function that will create the finished contact flow files ready to be imported.
+      Handler: lambda_function.lambda_handler
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:DeleteObject
+              Resource:
+                - !Sub ${ConnectData.Arn}/*
+      Runtime: python3.7
+      MemorySize: 128
+      Timeout: 30
+      Environment:
+        Variables:
+          CaptureContactDetailsArn: !GetAtt CaptureContactDetails.Arn
+          TriggerTranscriberArn: !GetAtt TriggerTranscriber.Arn
+          s3_bucket: !Ref ConnectData
+      CodeUri: ./functions/contact_flows
+
+  CreateContactFlows:
+    Type: Custom::ContactFlows
+    Properties:
+      ServiceToken: !GetAtt ContactFlows.Arn
