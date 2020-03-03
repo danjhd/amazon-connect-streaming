@@ -78,7 +78,7 @@ public final class KVSUtils {
      * @return
      */
     private static String getTagFromStream(FragmentMetadataVisitor.BasicMkvTagProcessor tagProcessor, final String tagName) {
-        Iterator iter = tagProcessor.getTags().iterator();
+        Iterator<MkvTag> iter = tagProcessor.getTags().iterator();
         while (iter.hasNext()) {
             MkvTag tag = (MkvTag) iter.next();
             if (tagName.equals(tag.getTagName())) {

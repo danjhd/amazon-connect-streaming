@@ -19,8 +19,8 @@ package com.amazonaws.kvstranscribestreaming;
 
 import java.util.Optional;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.transcribestreaming.model.LanguageCode;
 
 public class TranscriptionRequest {
