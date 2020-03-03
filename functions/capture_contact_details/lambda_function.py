@@ -1,10 +1,13 @@
 import json
+import datetime
+import dateutil.tz
 import boto3
 import os
-import datetime
 
 def lambda_handler(event, context):
 	print(f'Event From Amazon Connect: {json.dumps(event)}')
+
+	start_timestamp = datetime.datetime.fromtimestamp(int(event['Details']['ContactData']['MediaStreams']['Customer']['Audio']['StartTimestamp']) / 1000, tz = dateutil.tz.gettz(os.environ['TZ']))
 
 	ddb = boto3.client('dynamodb')
 	ddb.update_item(
@@ -14,10 +17,9 @@ def lambda_handler(event, context):
 		},
 		ExpressionAttributeValues = {
 			':var1': {'S': event['Details']['ContactData']['CustomerEndpoint']['Address']},
-			':var2': {'S': datetime.datetime.utcnow().strftime('%Y-%m-%d')},
-			':var3': {'S': datetime.datetime.now().strftime('%a %b %-d %Y %H:%M:%S')}
+			':var2': {'S': start_timestamp.strftime('%Y-%m-%dT%H:%M:%S.%f%z')},
 		},
-		UpdateExpression = 'SET CustomerPhoneNumber = :var1, CallDate = :var2, CallTimestamp = :var3'
+		UpdateExpression = 'SET CustomerPhoneNumber = :var1, CallTimestamp = :var2'
 	)
 
 	return {
