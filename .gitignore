@@ -1,5 +1,9 @@
 /functions/transcriber/.gradle
+/functions/transcriber/.settings
+/functions/transcriber/.classpath
+/functions/transcriber/.project
 /functions/transcriber/build/*
+/functions/transcriber/bin/*
 /deployment/template.yaml
 
 # But not these files...
