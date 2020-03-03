@@ -30,10 +30,10 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+//import java.text.DateFormat;
+//import java.text.SimpleDateFormat;
 import java.util.Optional;
-import java.util.Date;
+//import java.util.Date;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -75,7 +75,7 @@ public class KVSTranscribeStreamingLambda implements RequestHandler<Transcriptio
 
     private static final Logger logger = LoggerFactory.getLogger(KVSTranscribeStreamingLambda.class);
     public static final MetricsUtil metricsUtil = new MetricsUtil(AmazonCloudWatchClientBuilder.defaultClient());
-    private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+//    private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
 
     // SegmentWriter saves Transcription segments to DynamoDB
@@ -302,7 +302,8 @@ public class KVSTranscribeStreamingLambda implements RequestHandler<Transcriptio
         FragmentMetadataVisitor.BasicMkvTagProcessor tagProcessor = new FragmentMetadataVisitor.BasicMkvTagProcessor();
         FragmentMetadataVisitor fragmentVisitor = FragmentMetadataVisitor.create(Optional.of(tagProcessor));
 
-        String fileName = String.format("%s_%s_%s.raw", contactId, DATE_FORMAT.format(new Date()), trackName);
+//        String fileName = String.format("%s_%s_%s.raw", contactId, DATE_FORMAT.format(new Date()), trackName);
+        String fileName = String.format("%s_%s.raw", contactId, trackName);
         Path saveAudioFilePath = Paths.get("/tmp", fileName);
         FileOutputStream fileOutputStream = new FileOutputStream(saveAudioFilePath.toString());
 
