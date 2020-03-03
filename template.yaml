@@ -13,6 +13,11 @@ Parameters:
   EmailAddress:
     Type: String
 
+  PresignedUrlExpiry:
+    Type: Number
+    Description: The number of seconds after which the presigned url will expire.
+    Default: 3600
+
 Conditions:
 
   EmailSupplied: !Not [!Equals [!Ref EmailAddress, '']]
@@ -349,6 +354,11 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
+                - s3:GetObject
+              Resource:
+                - !Sub '${ConnectData.Arn}/recordings/*'
+            - Effect: Allow
+              Action:
                 - sns:Publish
               Resource:
                 - !Ref SnsTopic
@@ -358,6 +368,7 @@ Resources:
       Environment:
         Variables:
           sns_topic_arn: !Ref SnsTopic
+          url_expiry: !Ref PresignedUrlExpiry
       Events:
         DBTrigger:
           Type: DynamoDB

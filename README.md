@@ -62,9 +62,10 @@ The result of this command will be a new `template.yaml` file in the `deployment
 > - us-east-1 (N. Virginia)
 > - us-west-2 (Oregon)
 
-Use the CloudFormation user interface in the AWS web console to create a new stack from this template. You will be given the option to provide 2 parameter values:
+Use the CloudFormation user interface in the AWS web console to create a new stack from this template. You will be given the option to provide 3 parameter values:
 - EmailAddress - (Optional) Provide this if you wish to receive notifications from SNS when keywords are detected during a call and full call details at the end of each call.
 - KeyWords - This is the comma-delimited list of keywords that will be detected during calls to trigger alerts.
+- PresignedUrlExpiry - This defines the expiry period of the pre-signed S3 URL for the recording in the email notification.
 Leave all other options default and create the CloudFormation stack.
 
 While the stack is creating we can carry out the manual configuration required within Amazon Connect:
@@ -166,4 +167,4 @@ Once you have done all this wait a few minutes for all the configuration to beco
 The flow is easily invoked by making a phone call to the claimed number. You will hear the automated system greet you and inform you that the audio will be streamed. You will find that on first execution the beep can take a couple of seconds after the voice has stopped speaking and also the audio streaming may be slightly delayed from the start of the call. These are both areas we are working to improve in this solution.
 
 However, if you say one of the keywords during the call you should find an email is received alerting you to the fact. If you are on the phone long enough the email may arrive before you hang up.
-Once you do hang up you will get a further email with details of the call and the location of the full recording file in S3. Please note the url link is there to guide you. Since we are not making our S3 bucket public you will find the link does not work, this is expected.
+Once you do hang up you will get a further email with details of the call and the location of the full recording file in S3. This notification will include a pre-signed URL to access the recording directly in S3.
